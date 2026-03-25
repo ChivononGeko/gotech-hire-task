@@ -1,51 +1,81 @@
-import React, { useState } from 'react';
-
-// FLAW: hardcoded URL (occurrence 3 of 4)
-const API_URL = 'http://localhost:3000';
+import React, { useState } from 'react'
+import { API_URL } from '../constants'
 
 interface Props {
-  onLogin: (token: string, userId: number) => void;
+	onLogin: (token: string, userId: number) => void
 }
 
 export default function RegisterPage({ onLogin }: Props) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+	const [username, setUsername] = useState('')
+	const [password, setPassword] = useState('')
+	const [error, setError] = useState<string | null>(null)
+	const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // FLAW: no try/catch, no loading state
-    const res = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await res.json();
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-      onLogin(data.token, data.userId);
-    }
-  };
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault()
+		setError(null)
+		setLoading(true)
+		try {
+			const res = await fetch(`${API_URL}/auth/register`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ username, password }),
+			})
+			const data = await res.json()
+			if (data.token) {
+				onLogin(data.token, data.userId)
+			} else {
+				setError(data.message ?? 'Registration failed')
+			}
+		} catch {
+			setError('Network error. Please try again.')
+		} finally {
+			setLoading(false)
+		}
+	}
 
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '300px' }}>
-        <h2>Register</h2>
-        <input
-          placeholder="Username"
-          value={username}
-          onChange={e => setUsername(e.target.value)}
-          style={{ padding: '8px', fontSize: '16px' }}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          style={{ padding: '8px', fontSize: '16px' }}
-        />
-        <button type="submit" style={{ padding: '10px', fontSize: '16px', cursor: 'pointer' }}>Register</button>
-        <a href="/login">Already have an account? Login</a>
-      </form>
-    </div>
-  );
+	return (
+		<div
+			style={{
+				display: 'flex',
+				justifyContent: 'center',
+				alignItems: 'center',
+				height: '100vh',
+			}}
+		>
+			<form
+				onSubmit={handleSubmit}
+				style={{
+					display: 'flex',
+					flexDirection: 'column',
+					gap: '10px',
+					width: '300px',
+				}}
+			>
+				<h2>Register</h2>
+				{error && <div style={{ color: 'red', fontSize: '14px' }}>{error}</div>}
+				<input
+					placeholder='Username'
+					value={username}
+					onChange={e => setUsername(e.target.value)}
+					style={{ padding: '8px', fontSize: '16px' }}
+				/>
+				<input
+					type='password'
+					placeholder='Password'
+					value={password}
+					onChange={e => setPassword(e.target.value)}
+					style={{ padding: '8px', fontSize: '16px' }}
+				/>
+				<button
+					type='submit'
+					disabled={loading}
+					style={{ padding: '10px', fontSize: '16px', cursor: 'pointer' }}
+				>
+					{loading ? 'Registering...' : 'Register'}
+				</button>
+				<a href='/login'>Already have an account? Login</a>
+			</form>
+		</div>
+	)
 }
